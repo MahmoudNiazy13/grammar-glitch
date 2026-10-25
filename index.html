@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grammar Glitch: Present vs. Past Chronicles</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Fredoka & Bangers for a comic, cartoon look -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- Tone.js for dynamic cartoon sound effects without external audio assets -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+  <style>
+    body {
+      font-family: 'Fredoka', cursive, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .font-comic {
+      font-family: 'Bangers', cursive, sans-serif;
+      letter-spacing: 0.05em;
+    }
+    
+    /* Cartoon Pop Keyframes */
+    @keyframes bobble {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(-1.5deg); }
+    }
+    @keyframes floaty {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-12px); }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px) rotate(-2deg); }
+      40%, 80% { transform: translateX(8px) rotate(2deg); }
+    }
+    @keyframes portalSpin {
+      from { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(180deg) scale(1.05); }
+      to { transform: rotate(360deg) scale(1); }
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.6) rotate(-5deg); opacity: 0; }
+      80% { transform: scale(1.05) rotate(2deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    .animate-bobble { animation: bobble 3s ease-in-out infinite; }
+    .animate-float { animation: floaty 4s ease-in-out infinite; }
+    .animate-shake { animation: shake 0.5s ease-in-out; }
+    .animate-portal { animation: portalSpin 20s linear infinite; }
+    .animate-pop { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+    /* Custom 3D buttons */
+    .comic-btn {
+      transition: all 0.1s ease-in-out;
+      box-shadow: 0 6px 0 rgba(0,0,0,0.25);
+    }
+    .comic-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 0 rgba(0,0,0,0.3);
+    }
+    .comic-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 rgba(0,0,0,0.35);
+    }
+
+    /* Comic border utility */
+    .comic-border {
+      border: 4px solid #1e293b;
+      box-shadow: 6px 6px 0 #0f172a;
+    }
+    .comic-border-sm {
+      border: 3px solid #1e293b;
+      box-shadow: 4px 4px 0 #0f172a;
+    }
+
+    /* Confetti Canvas overlay */
+    #fxCanvas {
+      pointer-events: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 60;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-950 min-h-screen text-slate-100 flex flex-col justify-between overflow-x-hidden p-2 sm:p-4">
+
+  <!-- Effect Canvas for Sparks and Confetti -->
+  <canvas id="fxCanvas"></canvas>
+
+  <!-- Navigation / Top Bar -->
+  <header class="w-full max-w-4xl mx-auto flex items-center justify-between bg-purple-950/80 backdrop-blur-md p-3 sm:p-4 rounded-2xl comic-border-sm z-20 mb-3">
+    <div class="flex items-center gap-3">
+      <!-- Mascot Icon -->
+      <div class="w-12 h-12 bg-amber-400 rounded-xl comic-border-sm flex items-center justify-center text-2xl shadow-inner animate-bobble">
+        🕰️
+      </div>
+      <div>
+        <h1 class="text-xl sm:text-2xl font-comic text-yellow-300 tracking-wider drop-shadow-md">GRAMMAR GLITCH</h1>
+        <p class="text-xs text-purple-200 font-semibold hidden sm:block">Time-Tense Paradox Containment Unit</p>
+      </div>
+    </div>
+
+    <!-- Stats Pill -->
+    <div class="flex items-center gap-3 sm:gap-4 font-bold">
+      <!-- Energy Meter / HP -->
+      <div class="flex items-center gap-1.5 bg-slate-900/90 px-3 py-1.5 rounded-xl border-2 border-purple-500">
+        <span class="text-rose-400">⚡ Paradox:</span>
+        <div class="w-16 sm:w-24 h-4 bg-slate-700 rounded-full overflow-hidden p-0.5 border border-slate-600">
+          <div id="paradoxMeter" class="h-full bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 rounded-full transition-all duration-300" style="width: 100%;"></div>
+        </div>
+      </div>
+
+      <!-- Score -->
+      <div class="bg-amber-400 text-slate-900 px-3 sm:px-4 py-1.5 rounded-xl font-comic text-lg sm:text-xl comic-border-sm">
+        PTS: <span id="scoreDisplay">0</span>
+      </div>
+
+      <!-- Audio Toggle -->
+      <button id="soundBtn" onclick="toggleAudio()" class="p-2 bg-purple-800 hover:bg-purple-700 rounded-xl text-xl border-2 border-purple-400 transition" title="Toggle Sound">
+        🔊
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN GAME AREA -->
+  <main class="w-full max-w-4xl mx-auto flex-grow flex flex-col items-center justify-center relative z-10 my-auto">
+
+    <!-- SCREEN 1: START SCREEN -->
+    <div id="startScreen" class="w-full bg-slate-900/95 p-6 sm:p-10 rounded-3xl comic-border text-center relative overflow-hidden">
+      <!-- Decorative background portal -->
+      <div class="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-gradient-to-r from-purple-600/30 to-pink-600/30 blur-2xl animate-portal"></div>
+      <div class="absolute -bottom-32 -left-32 w-80 h-80 rounded-full bg-gradient-to-r from-cyan-600/30 to-blue-600/30 blur-2xl animate-portal"></div>
+
+      <div class="relative z-10 max-w-2xl mx-auto space-y-6">
+        <div class="inline-block bg-yellow-400 text-slate-900 font-comic text-base sm:text-xl px-4 py-1 rounded-full uppercase tracking-widest shadow-md">
+          Grade 7 & 8 Temporal English Mission
+        </div>
+
+        <h2 class="text-4xl sm:text-6xl font-comic text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-pink-400 to-cyan-300 leading-tight">
+          PROFESSOR PARADOX'S TIME JAM!
+        </h2>
+
+        <!-- Character Humor Dialog -->
+        <div class="flex items-center gap-4 bg-slate-800/90 p-4 rounded-2xl comic-border-sm text-left">
+          <div class="text-4xl sm:text-5xl animate-bounce">👨‍🔬</div>
+          <div class="text-sm sm:text-base text-slate-200">
+            <span class="text-amber-400 font-bold">Prof. Paradox:</span>
+            "Great galloping geckos! I spilled grape soda on the Quantum Clock! Now 
+            <strong class="text-cyan-300">everyday habits (Present Simple)</strong> and 
+            <strong class="text-pink-300">historical mishaps (Past Simple)</strong> are violently crashing into each other! Help me repair the timeline!"
+          </div>
+        </div>
+
+        <!-- Quick rules cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+          <div class="bg-indigo-950/80 p-3.5 rounded-xl border-2 border-indigo-500/60">
+            <h4 class="font-comic text-cyan-300 text-lg flex items-center gap-2">🔄 Present Simple</h4>
+            <p class="text-xs text-indigo-200 mt-1">• Habits, routines & scientific facts.</p>
+            <p class="text-xs text-indigo-200">• Clues: <em>always, usually, every day, often, never</em>.</p>
+            <p class="text-xs text-emerald-300 font-mono mt-1">Ex: "Cats sleep 16 hours every day."</p>
+          </div>
+          <div class="bg-fuchsia-950/80 p-3.5 rounded-xl border-2 border-fuchsia-500/60">
+            <h4 class="font-comic text-pink-300 text-lg flex items-center gap-2">📜 Past Simple</h4>
+            <p class="text-xs text-pink-200 mt-1">• Finished actions in the past.</p>
+            <p class="text-xs text-pink-200">• Clues: <em>yesterday, ago, last week, in 1999</em>.</p>
+            <p class="text-xs text-emerald-300 font-mono mt-1">Ex: "Dinosaurs ate pizza yesterday."</p>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center pt-2">
+          <button onclick="startGame()" class="w-full sm:w-auto comic-btn px-8 py-4 bg-gradient-to-r from-emerald-400 to-green-500 hover:from-emerald-300 hover:to-green-400 text-slate-950 font-comic text-2xl sm:text-3xl rounded-2xl border-4 border-slate-900 tracking-wider">
+            ⚡ COMMENCE TIME REPAIR!
+          </button>
+          <button onclick="openCheatSheet()" class="w-full sm:w-auto px-6 py-4 bg-slate-800 hover:bg-slate-700 text-yellow-300 font-semibold rounded-2xl border-2 border-yellow-400/50 text-sm transition">
+            📖 Grammar Field Guide
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN 2: GAMEPLAY CARD -->
+    <div id="gameScreen" class="w-full hidden space-y-4">
+      
+      <!-- Scenario Stage Card -->
+      <div id="scenarioCard" class="w-full bg-slate-900/95 p-5 sm:p-7 rounded-3xl comic-border relative overflow-hidden animate-pop">
+        
+        <!-- Timeline Stage Badge & Streak -->
+        <div class="flex justify-between items-center mb-3">
+          <div class="flex items-center gap-2">
+            <span id="eraBadge" class="bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 text-xs sm:text-sm font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+              Ancient Rome • Glitch #1
+            </span>
+          </div>
+          <div id="streakPill" class="hidden bg-amber-400/20 border border-amber-400 text-amber-300 text-xs sm:text-sm font-bold px-3 py-1 rounded-full">
+            🔥 STREAK: <span id="streakCount">0</span>x
+          </div>
+        </div>
+
+        <!-- Animated Character / Visual Scene Header -->
+        <div class="flex flex-col sm:flex-row items-center gap-4 bg-slate-800/80 p-4 rounded-2xl comic-border-sm mb-5 relative">
+          <!-- Character Avatar with goofy animation -->
+          <div id="sceneAvatar" class="text-5xl sm:text-6xl p-3 bg-gradient-to-b from-purple-700 to-indigo-800 rounded-2xl comic-border-sm animate-bobble flex-shrink-0">
+            🦖
+          </div>
+          <div class="flex-grow text-center sm:text-left">
+            <div id="characterTag" class="text-xs font-bold text-amber-300 uppercase tracking-wider">Historical Incident</div>
+            <p id="sceneNarrative" class="text-slate-200 text-sm sm:text-base italic">
+              "A velociraptor in roller skates is causing total chaos!"
+            </p>
+          </div>
+        </div>
+
+        <!-- The Target Sentence Box -->
+        <div class="bg-indigo-950/70 border-3 border-indigo-400 p-5 rounded-2xl text-center relative mb-5 shadow-inner">
+          <span class="absolute -top-3 left-4 bg-indigo-500 text-slate-950 font-comic text-xs px-2.5 py-0.5 rounded-full uppercase">
+            Repair the Sentence
+          </span>
+          <div id="sentenceDisplay" class="text-xl sm:text-2xl md:text-3xl font-bold tracking-wide text-white leading-relaxed">
+            Sentence loading...
+          </div>
+          <!-- Time clue highlight hint -->
+          <p id="clueHint" class="text-xs text-amber-300/90 mt-2 font-medium">
+            💡 Time Signal: <span id="clueSignalText" class="underline decoration-wavy decoration-yellow-400">every morning</span>
+          </p>
+        </div>
+
+        <!-- Answer Options Grid -->
+        <div class="space-y-2">
+          <div class="text-xs font-semibold uppercase tracking-wider text-purple-300 text-center mb-1">
+            Choose the grammatically correct verb glitch-patch:
+          </div>
+          <div id="optionsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Dynamic Buttons injected here -->
+          </div>
+        </div>
+
+        <!-- Humorous Feedback / Explanation Panel -->
+        <div id="feedbackBox" class="mt-4 p-4 rounded-xl comic-border-sm hidden transition-all">
+          <div class="flex items-start gap-3">
+            <span id="feedbackIcon" class="text-3xl">🎉</span>
+            <div>
+              <h4 id="feedbackTitle" class="font-comic text-xl">AWESOME CHRONO-FIX!</h4>
+              <p id="feedbackText" class="text-sm mt-1 text-slate-200"></p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Controls below card -->
+      <div class="flex justify-between items-center px-2">
+        <button onclick="openCheatSheet()" class="text-xs sm:text-sm text-cyan-300 hover:text-cyan-200 flex items-center gap-1.5 underline decoration-dotted">
+          <span>🧠 Need a rule reminder?</span>
+        </button>
+
+        <button id="nextBtn" onclick="nextQuestion()" class="hidden comic-btn px-6 py-2.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-comic text-xl rounded-xl comic-border-sm">
+          NEXT GLITCH ➔
+        </button>
+      </div>
+
+    </div>
+
+    <!-- SCREEN 3: GAME OVER / VICTORY SCREEN -->
+    <div id="endScreen" class="w-full hidden bg-slate-900/95 p-6 sm:p-10 rounded-3xl comic-border text-center relative overflow-hidden animate-pop">
+      <div class="max-w-xl mx-auto space-y-6">
+        <div id="endAvatar" class="text-7xl animate-bounce">🏆</div>
+        
+        <h2 id="endTitle" class="text-4xl sm:text-5xl font-comic text-amber-300">TIMELINE PRESERVED!</h2>
+        
+        <p id="endSubtitle" class="text-slate-300 text-base sm:text-lg">
+          You successfully patched the temporal fabric! Shakespeare stopped using laser blasters, and Julius Caesar returned to eating salad.
+        </p>
+
+        <!-- Final Performance Stats -->
+        <div class="grid grid-cols-3 gap-3 bg-slate-800/80 p-4 rounded-2xl comic-border-sm text-center">
+          <div class="p-2">
+            <div class="text-xs text-slate-400 font-semibold uppercase">Final Score</div>
+            <div id="finalScore" class="font-comic text-2xl sm:text-3xl text-emerald-400">0</div>
+          </div>
+          <div class="p-2 border-x border-slate-700">
+            <div class="text-xs text-slate-400 font-semibold uppercase">Accuracy</div>
+            <div id="finalAccuracy" class="font-comic text-2xl sm:text-3xl text-cyan-400">100%</div>
+          </div>
+          <div class="p-2">
+            <div class="text-xs text-slate-400 font-semibold uppercase">Tense Rank</div>
+            <div id="finalRank" class="font-comic text-base sm:text-xl text-yellow-300">Time Wizard</div>
+          </div>
+        </div>
+
+        <!-- Grade 7/8 Specific Takeaway Message -->
+        <div class="bg-purple-950/60 p-4 rounded-xl border border-purple-500/40 text-left text-xs sm:text-sm text-purple-200">
+          <span class="font-bold text-yellow-300">Teacher's Note for Class:</span>
+          Remember that <strong>Present Simple</strong> requires that pesky <code class="text-pink-300">-s/-es</code> for <em>he/she/it</em> routines, while <strong>Past Simple</strong> uses <code class="text-emerald-300">-ed</code> or unique irregular verbs (<em>ate, caught, saw, bought</em>) for actions completed in the past!
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+          <button onclick="startGame()" class="comic-btn px-8 py-3.5 bg-gradient-to-r from-emerald-400 to-green-500 text-slate-950 font-comic text-2xl rounded-2xl comic-border-sm">
+            🔄 PLAY AGAIN (NEW GLITCHES)
+          </button>
+          <button onclick="openCheatSheet()" class="px-6 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl font-semibold border border-slate-600 transition">
+            Review Rules
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- GRAMMAR FIELD GUIDE MODAL (Cheat Sheet for G7/G8) -->
+  <div id="cheatSheetModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 comic-border max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-3xl p-6 relative">
+      <button onclick="closeCheatSheet()" class="absolute top-4 right-4 bg-rose-500 text-white w-9 h-9 rounded-full font-bold flex items-center justify-center comic-btn">
+        ✕
+      </button>
+
+      <div class="text-center mb-6">
+        <h3 class="text-3xl font-comic text-yellow-300">⚡ Temporal Grammar Field Guide</h3>
+        <p class="text-xs sm:text-sm text-purple-300">Cheat sheet for 7th & 8th Grade time-travelers</p>
+      </div>
+
+      <div class="space-y-6 text-sm">
+        <!-- Present Simple Section -->
+        <div class="bg-indigo-950/60 p-4 rounded-2xl border-2 border-indigo-500">
+          <h4 class="font-comic text-xl text-cyan-300 mb-2 flex items-center gap-2">
+            🔄 Present Simple (Routines, Facts & Habits)
+          </h4>
+          <p class="text-slate-300 mb-2">Used for actions that repeat regularly, general truths, or eternal realities.</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs mb-2">
+            <div class="bg-slate-800/80 p-2.5 rounded-lg">
+              <span class="text-amber-400 font-bold">Rule:</span> Base form verb, but add <strong>-s / -es</strong> for <em>He / She / It</em>!
+              <br><span class="text-emerald-300 font-mono">"He play<strong>s</strong> soccer every Friday."</span>
+            </div>
+            <div class="bg-slate-800/80 p-2.5 rounded-lg">
+              <span class="text-amber-400 font-bold">Signal Words:</span> Always, never, often, usually, sometimes, every day/month/week.
+            </div>
+          </div>
+          <div class="text-xs text-indigo-300">
+            <strong>Negatives & Questions:</strong> Use <code class="text-yellow-300">do / does</code> + base verb (e.g., "She <em>doesn't like</em> broccoli").
+          </div>
+        </div>
+
+        <!-- Past Simple Section -->
+        <div class="bg-fuchsia-950/60 p-4 rounded-2xl border-2 border-fuchsia-500">
+          <h4 class="font-comic text-xl text-pink-300 mb-2 flex items-center gap-2">
+            📜 Past Simple (Finished Actions in Past)
+          </h4>
+          <p class="text-slate-300 mb-2">Used for actions that happened and finished at a definite time in the past.</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs mb-2">
+            <div class="bg-slate-800/80 p-2.5 rounded-lg">
+              <span class="text-amber-400 font-bold">Regular Verbs:</span> Add <strong>-ed</strong> (walk &rarr; walked, jump &rarr; jumped).
+            </div>
+            <div class="bg-slate-800/80 p-2.5 rounded-lg">
+              <span class="text-amber-400 font-bold">Irregular Verbs:</span> They change drastically! (go &rarr; <em>went</em>, eat &rarr; <em>ate</em>, buy &rarr; <em>bought</em>).
+            </div>
+          </div>
+          <div class="bg-slate-800/80 p-2.5 rounded-lg text-xs mb-2">
+            <span class="text-amber-400 font-bold">Signal Words:</span> Yesterday, last night/year, 2 hours ago, in 1945, when I was 5.
+          </div>
+          <div class="text-xs text-pink-300">
+            <strong>Negatives & Questions:</strong> Use <code class="text-yellow-300">did / didn't</code> + base verb (e.g., "We <em>didn't go</em> to school yesterday").
+          </div>
+        </div>
+
+        <!-- Tricky Glitches -->
+        <div class="bg-amber-950/40 p-4 rounded-2xl border-2 border-amber-500/50">
+          <h4 class="font-comic text-lg text-amber-300 mb-1">⚠️ Common Student Glitches to Avoid:</h4>
+          <ul class="list-disc list-inside text-xs text-amber-200 space-y-1">
+            <li><strong>Double Past Mistake:</strong> Don't say <em>"I didn't saw him"</em>. Say <span class="text-green-300">"I didn't see him"</span>.</li>
+            <li><strong>The "He/She" Forgetfulness:</strong> Don't forget <em>-s</em> for Present habits: <em>"My dog bark<strong>s</strong> every morning."</em></li>
+            <li><strong>State Verbs:</strong> Facts like <em>"Water boils at 100°C"</em> are ALWAYS Present Simple!</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mt-6 text-center">
+        <button onclick="closeCheatSheet()" class="comic-btn px-6 py-2.5 bg-yellow-400 text-slate-950 font-comic text-lg rounded-xl">
+          GOT IT! BACK TO THE ACTION 🚀
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="w-full max-w-4xl mx-auto text-center text-xs text-purple-300/70 py-2">
+    Designed for Middle School English Tense Mastery (Present Simple vs. Past Simple) • Sound by Tone.js Synthesizers
+  </footer>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    /* ==========================================================
+       SOUND ENGINE (TONE.JS)
+       Creates dynamic arcade chiptune sounds without external files
+       ========================================================== */
+    let audioReady = false;
+    let audioEnabled = true;
+
+    // Synthesizers
+    let sfxSynth, noiseSynth, bassSynth;
+
+    function initAudio() {
+      if (audioReady) return;
+      try {
+        sfxSynth = new Tone.PolySynth(Tone.Synth, {
+          oscillator: { type: "triangle8" },
+          envelope: { attack: 0.005, decay: 0.15, sustain: 0, release: 0.1 }
+        }).toDestination();
+        sfxSynth.volume.value = -6;
+
+        bassSynth = new Tone.MembraneSynth().toDestination();
+        bassSynth.volume.value = -4;
+
+        noiseSynth = new Tone.NoiseSynth({
+          noise: { type: 'white' },
+          envelope: { attack: 0.005, decay: 0.25, sustain: 0 }
+        }).toDestination();
+        noiseSynth.volume.value = -12;
+
+        Tone.start();
+        audioReady = true;
+      } catch (e) {
+        console.warn("Audio Context init pending user gesture.");
+      }
+    }
+
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+      const btn = document.getElementById('soundBtn');
+      btn.innerText = audioEnabled ? '🔊' : '🔇';
+      btn.classList.toggle('opacity-50', !audioEnabled);
+      if (audioEnabled && !audioReady) {
+        initAudio();
+      }
+    }
+
+    function playSound(type) {
+      if (!audioEnabled) return;
+      initAudio();
+      if (!audioReady) return;
+
+      const now = Tone.now();
+      try {
+        if (type === 'correct') {
+          sfxSynth.triggerAttackRelease(["C5", "E5", "G5"], "16n", now);
+          sfxSynth.triggerAttackRelease(["C6"], "8n", now + 0.1);
+        } else if (type === 'wrong') {
+          bassSynth.triggerAttackRelease("F2", "8n", now);
+          sfxSynth.triggerAttackRelease(["Eb3", "D3"], "16n", now + 0.08);
+        } else if (type === 'click') {
+          sfxSynth.triggerAttackRelease("A5", "32n", now);
+        } else if (type === 'win') {
+          sfxSynth.triggerAttackRelease(["C5", "G5"], "16n", now);
+          sfxSynth.triggerAttackRelease(["E5", "C6"], "16n", now + 0.12);
+          sfxSynth.triggerAttackRelease(["G5", "E6"], "8n", now + 0.24);
+        } else if (type === 'glitch') {
+          noiseSynth.triggerAttackRelease("16n", now);
+        }
+      } catch(err) {
+        // Fallback gracefully if audio is suspended
+      }
+    }
+
+    /* ==========================================================
+       CURATED QUESTION BANK FOR GRADE 7 & 8
+       Focus: Present Simple (habits, schedules, truths) vs
+              Past Simple (regular -ed, irregulars, questions, negatives)
+              Filled with funny Middle School humor.
+       ========================================================== */
+    const QUESTION_BANK = [
+      {
+        era: "Mesozoic Era • Glitch 01",
+        avatar: "🦖",
+        character: "Terrance the T-Rex",
+        narrative: "Terrance tries to be polite, but his tiny arms ruin dinner parties.",
+        sentenceTemplate: "Terrance the T-Rex always {BLANK} his tea with his pinky finger out, even though his arms are too short.",
+        clue: "always (habitual routine)",
+        targetTense: "Present Simple",
+        correct: "drinks",
+        options: ["drinks", "drank", "is drinking", "drinked"],
+        funnyExplanation: "Spot on! 'Always' signals an everyday habit (Present Simple). And since Terrance is a 'he', we slap an -S on the verb: drinks!"
+      },
+      {
+        era: "Ancient Rome • Glitch 02",
+        avatar: "🏛️",
+        character: "Julius Caesar's Chef",
+        narrative: "Yesterday's banquet menu had a disastrous typo.",
+        sentenceTemplate: "Yesterday, the Roman emperor {BLANK} 40 pineapple pizzas before the senate meeting.",
+        clue: "Yesterday (specific finished time in past)",
+        targetTense: "Past Simple",
+        correct: "ate",
+        options: ["eats", "ate", "eated", "did eat"],
+        funnyExplanation: "Brilliant! 'Yesterday' demands Past Simple. 'Eat' is an irregular verb: eat &rarr; ate (not 'eated', as tempting as that sounds)!"
+      },
+      {
+        era: "Medieval Times • Glitch 03",
+        avatar: "🐉",
+        character: "Sir Reginald & The Dragon",
+        narrative: "Sir Reginald's dragon has an odd morning hygiene regimen.",
+        sentenceTemplate: "The castle dragon usually {BLANK} fire to brush its massive teeth every morning.",
+        clue: "usually / every morning (routine)",
+        targetTense: "Present Simple",
+        correct: "breathes",
+        options: ["breathed", "breathes", "breath", "is breathing"],
+        funnyExplanation: "Correct! 'Usually' and 'every morning' scream Present Simple routine! For the dragon (it), we use 'breathes'!"
+      },
+      {
+        era: "18th Century • Glitch 04",
+        avatar: "🚢",
+        character: "Captain Barnaby the Pirate",
+        narrative: "A legendary treasure hunt that went completely off the rails.",
+        sentenceTemplate: "Three days ago, Captain Barnaby {BLANK} a shiny chest filled with... dirty gym socks.",
+        clue: "Three days ago (finished past moment)",
+        targetTense: "Past Simple",
+        correct: "found",
+        options: ["finds", "found", "founded", "finded"],
+        funnyExplanation: "Bingo! 'Three days ago' points straight to the Past Simple. The past of 'find' is the irregular 'found'!"
+      },
+      {
+        era: "Modern Science Lab • Glitch 05",
+        avatar: "🧫",
+        character: "Dr. Gene Splice",
+        narrative: "A universal law of biology discovered in 7th grade science class.",
+        sentenceTemplate: "Science teachers often remind us that polar bears {BLANK} thick fur to survive freezing arctic blizzards.",
+        clue: "General truth / fact",
+        targetTense: "Present Simple",
+        correct: "have",
+        options: ["had", "have", "has", "are having"],
+        funnyExplanation: "Well done! General scientific facts take Present Simple. Since 'polar bears' is plural (they), we use 'have'!"
+      },
+      {
+        era: "1969 Moon Landing • Glitch 06",
+        avatar: "🚀",
+        character: "Astronaut Bob",
+        narrative: "A secret Apollo 11 audio log just got unsealed.",
+        sentenceTemplate: "In 1969, astronauts {BLANK} on the moon and did the macarena in zero gravity.",
+        clue: "In 1969 (historical past date)",
+        targetTense: "Past Simple",
+        correct: "landed",
+        options: ["land", "landed", "lands", "did land"],
+        funnyExplanation: "Superb! 'In 1969' is a completed past date. Regular past simple verbs just take -ed: 'landed'!"
+      },
+      {
+        era: "Cyber Future 2088 • Glitch 07",
+        avatar: "🤖",
+        character: "Robo-Butler Unit 7",
+        narrative: "Negative sentence calibration required for household droids.",
+        sentenceTemplate: "My robot butler {BLANK} like vacuuming the dog because the dog barks loudly.",
+        clue: "General fact / Negative Present Simple",
+        targetTense: "Present Simple (Negative)",
+        correct: "does not",
+        options: ["did not", "does not", "is not", "do not"],
+        funnyExplanation: "Awesome! For 'he/she/it' present simple negatives, use 'does not' + base verb! 'Does not like' keeps the timeline intact!"
+      },
+      {
+        era: "Victorian Era • Glitch 08",
+        avatar: "🎩",
+        character: "Sherlock Holmes",
+        narrative: "The case of the missing homework binder.",
+        sentenceTemplate: "Last night, the great detective {BLANK} his magnifying glass and inspected a mysterious puddle of pudding.",
+        clue: "Last night (finished past)",
+        targetTense: "Past Simple",
+        correct: "took",
+        options: ["takes", "taked", "took", "is taking"],
+        funnyExplanation: "Spot on! 'Last night' requires the past simple of take &rarr; 'took'. Another irregular verb conquered!"
+      },
+      {
+        era: "School Cafeteria • Glitch 09",
+        avatar: "🥪",
+        character: "Mystery Meat Incident",
+        narrative: "A legendary lunchroom mystery that remains unsolved.",
+        sentenceTemplate: "{BLANK} you see the cafeteria taco monster slithering under the table yesterday?",
+        clue: "yesterday (Past Simple Question)",
+        targetTense: "Past Simple (Question)",
+        correct: "Did",
+        options: ["Do", "Did", "Does", "Were"],
+        funnyExplanation: "Boom! For Past Simple questions with regular/irregular verbs, start with auxiliary 'Did' + subject + base verb!"
+      },
+      {
+        era: "The Wild West • Glitch 10",
+        avatar: "🤠",
+        character: "Cowboy Cactus Pete",
+        narrative: "Pete's horse has unique transportation habits.",
+        sentenceTemplate: "Cactus Pete never {BLANK} his horse into the saloon because horses hate jazz piano.",
+        clue: "never (habitual frequency)",
+        targetTense: "Present Simple",
+        correct: "rides",
+        options: ["rode", "rides", "ride", "riding"],
+        funnyExplanation: "Yeehaw! 'Never' is an adverb of frequency for routines (Present Simple). Pete is a 'he', so: rides!"
+      },
+      {
+        era: "Shakespearean Theater • Glitch 11",
+        avatar: "🎭",
+        character: "William Shakespeare",
+        narrative: "The bard had sudden writer's block centuries ago.",
+        sentenceTemplate: "Centuries ago, Shakespeare {BLANK} 37 plays, but he forgot his password to the stage door.",
+        clue: "Centuries ago (completed past time)",
+        targetTense: "Past Simple",
+        correct: "wrote",
+        options: ["writes", "writed", "wrote", "was writing"],
+        funnyExplanation: "Huzzah! 'Centuries ago' triggers Past Simple. The irregular past of write is 'wrote'!"
+      },
+      {
+        era: "Alien Space Station • Glitch 12",
+        avatar: "👽",
+        character: "Zorgon the Martain",
+        narrative: "Earth customs are very confusing to extraterrestrials.",
+        sentenceTemplate: "Every weekend, Zorgon {BLANK} his space saucer with sparkle soap and cosmic glitter.",
+        clue: "Every weekend (regular schedule)",
+        targetTense: "Present Simple",
+        correct: "washes",
+        options: ["washed", "wash", "washes", "washing"],
+        funnyExplanation: "Galactic perfection! 'Every weekend' demands Present Simple. Verbs ending in -sh add -es for he/she/it: 'washes'!"
+      }
+    ];
+
+    /* ==========================================================
+       GAME STATE MANAGEMENT
+       ========================================================== */
+    let currentQuestions = [];
+    let currentIndex = 0;
+    let score = 0;
+    let streak = 0;
+    let paradoxHealth = 100;
+    let answeredCurrent = false;
+
+    // Start New Game Session
+    function startGame() {
+      initAudio();
+      playSound('click');
+
+      // Shuffle question pool and pick 8 questions per run
+      currentQuestions = [...QUESTION_BANK].sort(() => Math.random() - 0.5).slice(0, 8);
+      currentIndex = 0;
+      score = 0;
+      streak = 0;
+      paradoxHealth = 100;
+      answeredCurrent = false;
+
+      updateStatsUI();
+
+      // View transition
+      document.getElementById('startScreen').classList.add('hidden');
+      document.getElementById('endScreen').classList.add('hidden');
+      document.getElementById('gameScreen').classList.remove('hidden');
+
+      renderCurrentQuestion();
+    }
+
+    // Render Question to Screen
+    function renderCurrentQuestion() {
+      answeredCurrent = false;
+      const q = currentQuestions[currentIndex];
+
+      // Update Header info
+      document.getElementById('eraBadge').innerText = `${q.era} (${currentIndex + 1}/${currentQuestions.length})`;
+      document.getElementById('sceneAvatar').innerText = q.avatar;
+      document.getElementById('characterTag').innerText = q.character;
+      document.getElementById('sceneNarrative').innerText = `"${q.narrative}"`;
+
+      // Fill sentence with visual blank
+      const sentenceHtml = q.sentenceTemplate.replace(
+        '{BLANK}',
+        `<span id="blankSlot" class="inline-block px-4 py-1 mx-1 bg-yellow-400/20 text-yellow-300 border-b-4 border-yellow-400 rounded-lg min-w-[120px] text-center font-mono">______</span>`
+      );
+      document.getElementById('sentenceDisplay').innerHTML = sentenceHtml;
+
+      // Clue signal
+      document.getElementById('clueSignalText').innerText = q.clue;
+
+      // Hide feedback box and Next button
+      const feedbackBox = document.getElementById('feedbackBox');
+      feedbackBox.classList.add('hidden');
+      document.getElementById('nextBtn').classList.add('hidden');
+
+      // Populate options (shuffled)
+      const optionsGrid = document.getElementById('optionsGrid');
+      optionsGrid.innerHTML = '';
+
+      const shuffledOptions = [...q.options].sort(() => Math.random() - 0.5);
+
+      shuffledOptions.forEach((opt) => {
+        const btn = document.createElement('button');
+        btn.className = `comic-btn w-full py-3.5 px-4 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 border-3 border-indigo-400/80 rounded-2xl text-lg sm:text-xl font-bold text-white flex items-center justify-between transition-all`;
+        btn.innerHTML = `
+          <span>${opt}</span>
+          <span class="text-xs bg-slate-900/60 px-2 py-1 rounded-md text-slate-400 font-mono">PATCH</span>
+        `;
+        btn.onclick = () => handleChoice(opt, btn);
+        optionsGrid.appendChild(btn);
+      });
+
+      // Animate card entrance
+      const card = document.getElementById('scenarioCard');
+      card.classList.remove('animate-pop');
+      void card.offsetWidth; // trigger reflow
+      card.classList.add('animate-pop');
+    }
+
+    // Process user's answer
+    function handleChoice(selectedOption, buttonEl) {
+      if (answeredCurrent) return;
+      answeredCurrent = true;
+
+      const q = currentQuestions[currentIndex];
+      const isCorrect = selectedOption === q.correct;
+
+      // Highlight the blank with chosen text
+      const blank = document.getElementById('blankSlot');
+      blank.innerText = selectedOption;
+
+      // Disable all option buttons
+      const allBtns = document.getElementById('optionsGrid').querySelectorAll('button');
+      allBtns.forEach(btn => {
+        btn.disabled = true;
+        btn.classList.add('cursor-not-allowed', 'opacity-60');
+      });
+
+      // Feedback Elements
+      const feedbackBox = document.getElementById('feedbackBox');
+      const feedbackTitle = document.getElementById('feedbackTitle');
+      const feedbackText = document.getElementById('feedbackText');
+      const feedbackIcon = document.getElementById('feedbackIcon');
+
+      feedbackBox.classList.remove('hidden', 'bg-emerald-950/80', 'border-emerald-400', 'bg-rose-950/80', 'border-rose-400');
+
+      if (isCorrect) {
+        // Correct Answer Logic
+        playSound('correct');
+        score += 150 + (streak * 25);
+        streak++;
+        paradoxHealth = Math.min(100, paradoxHealth + 5);
+
+        // Styling
+        buttonEl.classList.remove('bg-slate-800', 'border-indigo-400/80', 'opacity-60');
+        buttonEl.classList.add('bg-emerald-600', 'border-emerald-300', 'text-white', 'opacity-100');
+        blank.className = 'inline-block px-4 py-1 mx-1 bg-emerald-500/30 text-emerald-300 border-b-4 border-emerald-400 rounded-lg min-w-[120px] text-center font-mono font-bold';
+
+        feedbackBox.classList.add('bg-emerald-950/90', 'border-2', 'border-emerald-400');
+        feedbackIcon.innerText = "✨⏳";
+        feedbackTitle.innerText = "TIMELINE SECURED!";
+        feedbackTitle.className = "font-comic text-2xl text-emerald-300";
+        feedbackText.innerHTML = `<strong>${q.targetTense}:</strong> ${q.funnyExplanation}`;
+
+        // Particle explosion
+        spawnSparks(buttonEl);
+      } else {
+        // Wrong Answer Logic
+        playSound('wrong');
+        streak = 0;
+        paradoxHealth = Math.max(10, paradoxHealth - 20);
+
+        buttonEl.classList.remove('bg-slate-800', 'border-indigo-400/80', 'opacity-60');
+        buttonEl.classList.add('bg-rose-700', 'border-rose-300', 'text-white', 'opacity-100');
+        blank.className = 'inline-block px-4 py-1 mx-1 bg-rose-500/30 text-rose-300 border-b-4 border-rose-400 rounded-lg min-w-[120px] text-center font-mono font-bold line-through';
+
+        // Highlight the true answer button
+        allBtns.forEach(btn => {
+          if (btn.innerText.includes(q.correct)) {
+            btn.classList.remove('opacity-60');
+            btn.classList.add('bg-emerald-800', 'border-emerald-400', 'opacity-100', 'ring-2', 'ring-emerald-400');
+          }
+        });
+
+        // Trigger screen glitch shake
+        const card = document.getElementById('scenarioCard');
+        card.classList.add('animate-shake');
+        setTimeout(() => card.classList.remove('animate-shake'), 600);
+
+        feedbackBox.classList.add('bg-rose-950/90', 'border-2', 'border-rose-500');
+        feedbackIcon.innerText = "💥⚠️";
+        feedbackTitle.innerText = "GLITCH DETECTED!";
+        feedbackTitle.className = "font-comic text-2xl text-rose-300";
+        feedbackText.innerHTML = `Oops! You chose <em>${selectedOption}</em>. The timeline needed <strong>${q.correct}</strong>!<br>${q.funnyExplanation}`;
+      }
+
+      updateStatsUI();
+
+      // Reveal Next Button
+      const nextBtn = document.getElementById('nextBtn');
+      nextBtn.classList.remove('hidden');
+      nextBtn.focus();
+    }
+
+    // Move to next question or complete game
+    function nextQuestion() {
+      playSound('click');
+      currentIndex++;
+      if (currentIndex < currentQuestions.length && paradoxHealth > 0) {
+        renderCurrentQuestion();
+      } else {
+        endGame();
+      }
+    }
+
+    // Update Top Score & Health indicators
+    function updateStatsUI() {
+      document.getElementById('scoreDisplay').innerText = score;
+      
+      const meter = document.getElementById('paradoxMeter');
+      meter.style.width = `${paradoxHealth}%`;
+
+      const streakPill = document.getElementById('streakPill');
+      if (streak >= 2) {
+        streakPill.classList.remove('hidden');
+        document.getElementById('streakCount').innerText = streak;
+      } else {
+        streakPill.classList.add('hidden');
+      }
+    }
+
+    // End Game Screen
+    function endGame() {
+      playSound('win');
+      document.getElementById('gameScreen').classList.add('hidden');
+      document.getElementById('endScreen').classList.remove('hidden');
+
+      const totalPossible = currentQuestions.length * 150;
+      const accuracyPercent = Math.min(100, Math.round((score / totalPossible) * 100));
+
+      document.getElementById('finalScore').innerText = score;
+      document.getElementById('finalAccuracy').innerText = `${accuracyPercent}%`;
+
+      // Determine comical rank
+      let rank = "Chronotourist";
+      let title = "TIMELINE PRESERVED!";
+      let avatar = "🌟";
+
+      if (accuracyPercent >= 90) {
+        rank = "Master Tense Wizard";
+        avatar = "🧙‍♂️";
+        title = "TEMPORAL GENIUS!";
+      } else if (accuracyPercent >= 70) {
+        rank = "Senior Time Mechanic";
+        avatar = "🔧";
+        title = "TIMELINE STABILIZED!";
+      } else {
+        rank = "Paradox Intern";
+        avatar = "🦕";
+        title = "CLOSE CALL, RECRUIT!";
+      }
+
+      document.getElementById('endAvatar').innerText = avatar;
+      document.getElementById('endTitle').innerText = title;
+      document.getElementById('finalRank').innerText = rank;
+
+      // Confetti burst
+      launchConfetti();
+    }
+
+    /* ==========================================================
+       MODAL: GRAMMAR FIELD GUIDE
+       ========================================================== */
+    function openCheatSheet() {
+      playSound('click');
+      document.getElementById('cheatSheetModal').classList.remove('hidden');
+    }
+
+    function closeCheatSheet() {
+      playSound('click');
+      document.getElementById('cheatSheetModal').classList.add('hidden');
+    }
+
+    // Close on ESC key
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeCheatSheet();
+    });
+
+    /* ==========================================================
+       CANVAS FX: CONFETTI & SPARKS ENGINE
+       Procedural 2D canvas effects with no external library
+       ========================================================== */
+    const canvas = document.getElementById('fxCanvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function spawnSparks(element) {
+      const rect = element.getBoundingClientRect();
+      const originX = rect.left + rect.width / 2;
+      const originY = rect.top + rect.height / 2;
+      const colors = ['#f59e0b', '#10b981', '#38bdf8', '#f43f5e', '#a855f7'];
+
+      for (let i = 0; i < 35; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 8 + 3;
+        particles.push({
+          x: originX,
+          y: originY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size: Math.random() * 6 + 3,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          alpha: 1,
+          decay: Math.random() * 0.03 + 0.015,
+          gravity: 0.15,
+          shape: Math.random() > 0.5 ? 'circle' : 'rect'
+        });
+      }
+    }
+
+    function launchConfetti() {
+      const colors = ['#facc15', '#38bdf8', '#ec4899', '#4ade80', '#c084fc'];
+      for (let i = 0; i < 120; i++) {
+        particles.push({
+          x: canvas.width * Math.random(),
+          y: -20,
+          vx: (Math.random() - 0.5) * 6,
+          vy: Math.random() * 6 + 4,
+          size: Math.random() * 10 + 6,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          alpha: 1,
+          decay: 0.006,
+          gravity: 0.08,
+          rotation: Math.random() * 360,
+          rotSpeed: (Math.random() - 0.5) * 10,
+          shape: 'confetti'
+        });
+      }
+    }
+
+    function animateFX() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += p.gravity;
+        p.alpha -= p.decay;
+
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+
+        if (p.shape === 'circle') {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (p.shape === 'confetti') {
+          p.rotation += p.rotSpeed;
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rotation * Math.PI) / 180);
+          ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+        } else {
+          ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+        }
+
+        ctx.restore();
+      }
+
+      requestAnimationFrame(animateFX);
+    }
+
+    // Window load hook
+    window.onload = function() {
+      animateFX();
+    };
+  </script>
+</body>
+</html>
